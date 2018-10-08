@@ -163,26 +163,32 @@ getPackageVersionModuleDocsR (PathPackageName pkgName) (PathVersion version) mnS
           $(widgetFile "packageVersionModuleDocs")
 
 getBuiltinDocsR :: Text -> Handler Html
-getBuiltinDocsR mnString = do
-  case mnString of
-    "Prim" ->
-      defaultLayout $ do
-        setTitle (toHtml mnString)
-        let mn = P.moduleNameFromString mnString
-        let htmlDocs = primDocs
-        [whamlet|
-          <div .col.col--main>
+getBuiltinDocsR mnString =
+  let
+    mn = P.moduleNameFromString mnString
+  in
+    case primDocsFor mn of
+      Just htmlDocs -> do
+        moduleList <- builtinModuleList
+        defaultLayout $ do
+          setTitle (toHtml mnString)
+          [whamlet|
             <div .page-title.clearfix>
               <div .page-title__label>Module
               <h1 .page-title__title>#{insertBreaks mn}
-            #{htmlDocs}
+
+            <div .col.col--main>
+              #{htmlDocs}
+
+            <div .col.col--aside>
+              #{moduleList}
+            |]
+      Nothing ->
+        defaultLayout404 $ [whamlet|
+          <h2>Module not found
+          <p>No such builtin module: #
+            <b>#{mnString}
           |]
-    _ ->
-      defaultLayout404 $ [whamlet|
-        <h2>Module not found
-        <p>No such builtin module: #
-          <b>#{mnString}
-        |]
 
 findPackage ::
   PackageName ->
@@ -209,7 +215,7 @@ defaultLayout404 :: Widget -> Handler a
 defaultLayout404 widget =
   defaultLayout widget >>= sendResponseStatus notFound404
 
-versionSelector :: PackageName -> Version -> WidgetT App IO ()
+versionSelector :: PackageName -> Version -> WidgetFor App ()
 versionSelector pkgName version = do
   versionSelectorIdent <- newIdent
   let route = PackageAvailableVersionsR (PathPackageName pkgName)

@@ -9,6 +9,9 @@ dist: trusty
 sudo: required
 
 cache:
+  # Our caches are large, and take long enough to upload that we sometimes hit
+  # the default timeout of 180s, so we extend it here
+  timeout: 1500
   directories:
     - $HOME/.stack
 
@@ -28,13 +31,9 @@ addons:
 before_install:
   - mkdir -p ~/.local/bin
   - export PATH=$HOME/.local/bin:$PATH
-  - curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - stack setup
-  - stack --version
-  - stack install alex happy
 
 script:
-  - ./travis-script.sh
+  - ./travis/timeout.sh ./travis/script.sh
 
 notifications:
   email: true
